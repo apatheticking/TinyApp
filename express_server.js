@@ -44,7 +44,6 @@ app.post("/logout", (req, res) => {
 app.get("/urls", (req, res) => {
   let username = req.cookies["username"];
   let urls = { urls: urlDatabase, username: username };
-  //console.log(username);
   res.render("urls_index", urls);
 });
 
