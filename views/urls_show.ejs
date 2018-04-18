@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <% include ../partials/_header.ejs %>
+</head>
+<body>
+    <ul>
+      <li><%= shortURLs %> - <%= fullURLs %></li>
+      <form method="POST" action="/urls/<%= shortURLs %>/update">
+        <input type="text" name="fullURL" value="<%= fullURLs %>">
+        <input type="submit" value="Update">
+      </form>
+    </ul>
+</body>
+</html>
