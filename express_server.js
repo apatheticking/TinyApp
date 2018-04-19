@@ -1,15 +1,15 @@
 var express = require("express");
 const bodyParser = require("body-parser");
-//var cookieParser = require('cookie-parser');
 var cookieSession = require('cookie-session');
 const bcrypt = require('bcryptjs');
 var app = express();
 var PORT = process.env.PORT || 8080; // default port 8080
 
 app.use(bodyParser.urlencoded({extended: true}));
-//app.use(cookieParser())
+
 app.set("view engine", "ejs");
 
+//for encrypted cookies
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2'],
@@ -79,7 +79,7 @@ function generateRandomString() {
   }
   return text;
 }
-
+//finds the logging user in the database
 function urlsForUser(id){
   let userURL = {};
 
@@ -92,6 +92,8 @@ function urlsForUser(id){
 }
 
 //-------------server requests----------
+
+//response for root directory
 app.get("/", (req, res) => {
   res.end("Hello!");
 });
@@ -130,8 +132,7 @@ app.post("/login", (req, res) => {
     return;
   }
 
-  //res.cookie("user_id", id);
-  req.session.user_id = id;
+  req.session.user_id = id; //writes cookie for current user
   res.redirect("urls");
 });
 
@@ -140,8 +141,7 @@ app.get("/login",(req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  //res.clearCookie("user_id");
-  req.session = null;
+  req.session = null; //deletes cookie on logout
   res.redirect("/urls");
 })
 
@@ -166,97 +166,85 @@ app.post("/register", (req, res) => {
     }
   }
 
-  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+  const hashedPassword = bcrypt.hashSync(req.body.password, 10);//encrypts the password being passed in
 
   users[id] = {id: id, email: req.body.email, password: hashedPassword};//adds new user to DB
-  //res.cookie('user_id', id);
-  req.session.user_id = id;
+  req.session.user_id = id; //writes cookie to current user ID
   res.redirect("urls");
 });
 
 //-------------URLS--------------------
 app.get("/urls", (req, res) => { //returns the cookie back to _header.ejs
-  //let user = users[req.cookies["user_id"]];
   let user = users[req.session.user_id];
-  // let userURL = urlsForUser(req.cookies["user_id"]);
   let userURL = urlsForUser(req.session.user_id);
   let templateVars = { urls: userURL, user: user };
-  res.render("urls_index", templateVars);
+  res.render("urls_index", templateVars);//takes urls associated with the user and user information to urls_indexs
 });
 
-//database changed
 app.post("/urls", (req, res) => {
   let id = generateRandomString();
-  // urlDatabase[id] = {longURL: req.body.longURL, id: req.cookies["user_id"]};
-  urlDatabase[id] = {longURL: req.body.longURL, id: req.session.user_id};
-  //console.log(urlDatabase);
-  // res.redirect(`/urls/${id}`);
+  urlDatabase[id] = {longURL: req.body.longURL, id: req.session.user_id};//writes new url to the database
   res.redirect("/urls");
 });
 
 app.get("/urls/new", (req, res) => { //returns the cookie back to _header.ejs
-  //let user = users[req.cookies["user_id"]];
   let user = users[req.session.user_id];
-  if(!user){
+  if(!user){//checks if the user is logged in
     res.redirect("/login");
   } else {
     let templateVars = {user: user};
-    res.render("urls_new", templateVars);
+    res.render("urls_new", templateVars);//redirects user to create a new url
   }
 });
 
-//database changed
 app.get("/urls/:id", (req, res) => { //returns the cookie back to _header.ejs
-  //let user = users[req.cookies["user_id"]];
   let user = users[req.session.user_id];
-  if(!user){
+  if(!user){//if not logged in redirect to login
     res.redirect("/login");
-  } else if(urlDatabase[req.params.id].id !== user.id) {
+  } else if(urlDatabase[req.params.id].id !== user.id) {//if this url doesn't belong to the current user redirect to urls
     res.redirect("/urls");
   } else {
     let templateVars = { shortURLs: req.params.id, fullURLs: urlDatabase[req.params.id].longURL, user: user};
-    res.render("urls_show", templateVars);
+    res.render("urls_show", templateVars); //loads long, short urls and user info into urls_show
   }
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  //if(req.cookies["user_id"]){
-  if(req.session.user_id){
+  if(req.session.user_id){//if the user is logged in
     let longURL = urlDatabase[req.params.shortURL].longURL;
-    if(!longURL.startsWith("http://")){
+    if(!longURL.startsWith("http://")){//if the url doesn't start with http:// this will add it to the url
       longURL = "http://" + longURL;
     }
     res.redirect(longURL);
-  } else {
+  } else { //if the user isn't logged in
     res.redirect("/login");
   }
 });
-
+//displays the entire url database
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
 //--------------Ediing URLS------------------
+//updates url
 app.post("/urls/:id/update", (req, res) => {
-  //if(urlDatabase[req.params.id].id ===  req.cookies["user_id"]){
-  if(urlDatabase[req.params.id].id ===  req.session.user_id){
+  if(urlDatabase[req.params.id].id ===  req.session.user_id){//checks if this url belongs to this user
     urlDatabase[req.params.id].longURL = req.body.fullURL;
     res.redirect("/urls");
   } else {
     res.redirect("/urls");
   }
 });
-
+//deletes url
 app.post("/urls/:id/delete", (req, res) => {
-  //if(urlDatabase[req.params.id].id ===  req.cookies["user_id"]){
-  if(urlDatabase[req.params.id].id ===  req.session.user_id){
+  if(urlDatabase[req.params.id].id ===  req.session.user_id){//checks if this url belongs to this user
     delete urlDatabase[req.params.id];
     res.redirect(`/urls`);
   } else {
     res.redirect(`/urls`);
   }
 });
-
+//displays which port the server is running on
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
