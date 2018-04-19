@@ -176,9 +176,14 @@ app.post("/register", (req, res) => {
 //-------------URLS--------------------
 app.get("/urls", (req, res) => { //returns the cookie back to _header.ejs
   let user = users[req.session.user_id];
-  let userURL = urlsForUser(req.session.user_id);
-  let templateVars = { urls: userURL, user: user };
-  res.render("urls_index", templateVars);//takes urls associated with the user and user information to urls_indexs
+  if(!user){//if not logged send an error message
+    res.status(401).send("Please login first");
+    return;
+  } else {
+    let userURL = urlsForUser(req.session.user_id);
+    let templateVars = { urls: userURL, user: user };
+    res.render("urls_index", templateVars);//takes urls associated with the user and user information to urls_indexs
+  }
 });
 
 app.post("/urls", (req, res) => {
@@ -189,7 +194,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => { //returns the cookie back to _header.ejs
   let user = users[req.session.user_id];
-  if(!user){//checks if the user is logged in
+  if(!user){//if not logged send an error message
     res.redirect("/login");
   } else {
     let templateVars = {user: user};
@@ -199,10 +204,10 @@ app.get("/urls/new", (req, res) => { //returns the cookie back to _header.ejs
 
 app.get("/urls/:id", (req, res) => { //returns the cookie back to _header.ejs
   let user = users[req.session.user_id];
-  if(!user){//if not logged in redirect to login
-    res.redirect("/login");
+  if(!user){//if not logged send an error message
+    res.status(401).send("This url doesn't belong to you");
   } else if(urlDatabase[req.params.id].id !== user.id) {//if this url doesn't belong to the current user redirect to urls
-    res.redirect("/urls");
+    res.status(401).send("This url doesn't belong to you");
   } else {
     let templateVars = { shortURLs: req.params.id, fullURLs: urlDatabase[req.params.id].longURL, user: user};
     res.render("urls_show", templateVars); //loads long, short urls and user info into urls_show
