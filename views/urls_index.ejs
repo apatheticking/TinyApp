@@ -7,7 +7,7 @@
     <ul>
       <% for(var url in urls) { %>
         <li>
-          <%= url %> - <%= urls[url] %>
+          <%= url %> - <%= urls[url].longURL %>
           <form method="GET" action="/urls/<%= url %>/">
             <input type="submit" value="Edit">
           </form>
